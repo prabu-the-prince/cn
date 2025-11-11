@@ -1,0 +1,489 @@
+Computer Networks Practicals - Java Programs
+============================================================
+
+1. TCP Client-Server Communication
+----------------------------------
+Server:
+import java.io.*;
+import java.net.*;
+public class TCPServer {
+    public static void main(String[] args) throws IOException {
+        ServerSocket ss = new ServerSocket(65432);
+        Socket s = ss.accept();
+        BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        String msg;
+        while ((msg = br.readLine()) != null) System.out.println("Received: " + msg);
+        s.close();
+        ss.close();
+    }
+}
+Client:
+import java.io.*;
+import java.net.*;
+public class TCPClient {
+    public static void main(String[] args) throws IOException {
+        Socket s = new Socket("localhost", 65432);
+        PrintWriter pw = new PrintWriter(s.getOutputStream(), true);
+        pw.println("hello_client");
+        s.close();
+    }
+}
+
+2. UDP Echo Client-Server
+-------------------------
+Server:
+import java.net.*;
+public class UDPEchoServer {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket ds = new DatagramSocket(9876);
+        byte[] buf = new byte[1024];
+        while (true) {
+            DatagramPacket dp = new DatagramPacket(buf, buf.length);
+            ds.receive(dp);
+            String msg = new String(dp.getData(), 0, dp.getLength());
+            InetAddress ip = dp.getAddress();
+            int port = dp.getPort();
+            DatagramPacket send = new DatagramPacket(msg.getBytes(), msg.length(), ip, port);
+            ds.send(send);
+        }
+    }
+}
+Client:
+import java.net.*;
+import java.util.*;
+public class UDPEchoClient {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket ds = new DatagramSocket();
+        InetAddress ip = InetAddress.getByName("localhost");
+        Scanner sc = new Scanner(System.in);
+        String msg = sc.nextLine();
+        DatagramPacket dp = new DatagramPacket(msg.getBytes(), msg.length(), ip, 9876);
+        ds.send(dp);
+        byte[] buf = new byte[1024];
+        DatagramPacket reply = new DatagramPacket(buf, buf.length);
+        ds.receive(reply);
+        System.out.println(new String(reply.getData(), 0, reply.getLength()));
+        ds.close();
+    }
+}
+
+3. TCP Chat Application
+-----------------------
+Server:
+import java.io.*;
+import java.net.*;
+public class ChatServer {
+    public static void main(String[] args) throws Exception {
+        ServerSocket ss = new ServerSocket(5000);
+        Socket s = ss.accept();
+        BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+        BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
+        String msg;
+        while (true) {
+            msg = in.readLine();
+            if (msg.equalsIgnoreCase("bye")) break;
+            System.out.println("Client: " + msg);
+            out.println(stdin.readLine());
+        }
+        s.close();
+        ss.close();
+    }
+}
+Client:
+import java.io.*;
+import java.net.*;
+public class ChatClient {
+    public static void main(String[] args) throws Exception {
+        Socket s = new Socket("localhost", 5000);
+        BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+        BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
+        String msg;
+        while (true) {
+            out.println(stdin.readLine());
+            msg = in.readLine();
+            if (msg.equalsIgnoreCase("bye")) break;
+            System.out.println("Server: " + msg);
+        }
+        s.close();
+    }
+}
+
+4. DNS using UDP
+----------------
+Server:
+import java.net.*;
+import java.util.*;
+public class UDPDNSServer {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket ds = new DatagramSocket(9999);
+        Map<String, String> table = new HashMap<>();
+        table.put("www.google.com", "142.250.183.68");
+        table.put("www.yahoo.com", "98.138.219.231");
+        byte[] buf = new byte[1024];
+        while (true) {
+            DatagramPacket dp = new DatagramPacket(buf, buf.length);
+            ds.receive(dp);
+            String dom = new String(dp.getData(), 0, dp.getLength());
+            String ip = table.getOrDefault(dom, "Not Found");
+            DatagramPacket reply = new DatagramPacket(ip.getBytes(), ip.length(), dp.getAddress(), dp.getPort());
+            ds.send(reply);
+        }
+    }
+}
+Client:
+import java.net.*;
+import java.util.*;
+public class UDPDNSClient {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket ds = new DatagramSocket();
+        InetAddress ip = InetAddress.getByName("localhost");
+        Scanner sc = new Scanner(System.in);
+        String dom = sc.nextLine();
+        DatagramPacket dp = new DatagramPacket(dom.getBytes(), dom.length(), ip, 9999);
+        ds.send(dp);
+        byte[] buf = new byte[1024];
+        DatagramPacket reply = new DatagramPacket(buf, buf.length);
+        ds.receive(reply);
+        System.out.println(new String(reply.getData(), 0, reply.getLength()));
+        ds.close();
+    }
+}
+
+5. ARP Simulation
+-----------------
+import java.util.*;
+public class ARPSim {
+    public static void main(String[] args) {
+        Map<String, String> arp = new HashMap<>();
+        arp.put("192.168.1.1", "00-A0-C9-14-C8-29");
+        arp.put("192.168.1.2", "00-A0-C9-14-C8-30");
+        Scanner sc = new Scanner(System.in);
+        String ip = sc.nextLine();
+        System.out.println(arp.getOrDefault(ip, "Not Found"));
+    }
+}
+
+6. RARP Simulation
+------------------
+Server:
+import java.net.*;
+import java.util.*;
+public class RARPServer {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket ds = new DatagramSocket(6789);
+        Map<String, String> rarp = new HashMap<>();
+        rarp.put("00-A0-C9-14-C8-29", "192.168.1.1");
+        rarp.put("00-A0-C9-14-C8-30", "192.168.1.2");
+        byte[] buf = new byte[1024];
+        while (true) {
+            DatagramPacket dp = new DatagramPacket(buf, buf.length);
+            ds.receive(dp);
+            String mac = new String(dp.getData(), 0, dp.getLength());
+            String ip = rarp.getOrDefault(mac, "Not Found");
+            DatagramPacket reply = new DatagramPacket(ip.getBytes(), ip.length(), dp.getAddress(), dp.getPort());
+            ds.send(reply);
+        }
+    }
+}
+Client:
+import java.net.*;
+import java.util.*;
+public class RARPClient {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket ds = new DatagramSocket();
+        InetAddress ip = InetAddress.getByName("localhost");
+        Scanner sc = new Scanner(System.in);
+        String mac = sc.nextLine();
+        DatagramPacket dp = new DatagramPacket(mac.getBytes(), mac.length(), ip, 6789);
+        ds.send(dp);
+        byte[] buf = new byte[1024];
+        DatagramPacket reply = new DatagramPacket(buf, buf.length);
+        ds.receive(reply);
+        System.out.println(new String(reply.getData(), 0, reply.getLength()));
+        ds.close();
+    }
+}
+
+7. Distance Vector Routing
+--------------------------
+import java.util.*;
+public class DVRouting {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        int[][] cost = new int[n][n];
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++) cost[i][j] = sc.nextInt();
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++)
+                if (i != j) System.out.println(i + " -> " + j + " cost " + cost[i][j]);
+    }
+}
+
+8. Link State Routing
+---------------------
+import java.util.*;
+public class LSRouting {
+    final static int INF = 9999;
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        int[][] cost = new int[n][n];
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++)
+                cost[i][j] = sc.nextInt();
+        int src = sc.nextInt();
+        int[] dist = new int[n];
+        boolean[] vis = new boolean[n];
+        for (int i = 0; i < n; i++) dist[i] = cost[src][i];
+        vis[src] = true;
+        for (int c = 1; c < n; c++) {
+            int min = INF, next = -1;
+            for (int i = 0; i < n; i++)
+                if (!vis[i] && dist[i] < min) { min = dist[i]; next = i; }
+            vis[next] = true;
+            for (int i = 0; i < n; i++)
+                if (!vis[i] && dist[next] + cost[next][i] < dist[i])
+                    dist[i] = dist[next] + cost[next][i];
+        }
+        for (int i = 0; i < n; i++) System.out.println(src + " -> " + i + " = " + dist[i]);
+    }
+}
+
+9. Stop and Wait Protocol
+-------------------------
+import java.util.*;
+public class StopWait {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int frames = sc.nextInt();
+        for (int i = 1; i <= frames; i++) {
+            System.out.println("Frame " + i + " sent");
+            System.out.println("Frame " + i + " acknowledged");
+        }
+    }
+}
+
+10. Sliding Window Protocol
+---------------------------
+import java.util.*;
+public class SlidingWindow {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt(), window = sc.nextInt();
+        int sent = 0;
+        while (sent < n) {
+            for (int i = 0; i < window && sent < n; i++)
+                System.out.println("Frame " + (++sent) + " sent");
+            System.out.println("Acknowledgment received");
+        }
+    }
+}
+
+11. Leaky Bucket Algorithm
+--------------------------
+import java.util.*;
+public class LeakyBucket {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int bucket = sc.nextInt(), rate = sc.nextInt();
+        int n = sc.nextInt();
+        int filled = 0;
+        for (int i = 0; i < n; i++) {
+            int pkt = sc.nextInt();
+            if (filled + pkt > bucket) System.out.println("Packet loss");
+            else filled += pkt;
+            filled -= rate; if (filled < 0) filled = 0;
+            System.out.println("Bucket level: " + filled);
+        }
+    }
+}
+
+12. Token Bucket Algorithm
+--------------------------
+import java.util.*;
+public class TokenBucket {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int rate = sc.nextInt(), tokens = 0;
+        int n = sc.nextInt();
+        for (int i = 0; i < n; i++) {
+            tokens += rate;
+            int req = sc.nextInt();
+            if (tokens >= req) { tokens -= req; System.out.println("Sent"); }
+            else System.out.println("Dropped");
+        }
+    }
+}
+
+13. Bit Stuffing
+----------------
+import java.util.*;
+public class BitStuffing {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        String data = sc.nextLine();
+        String res = "", flag = "01111110";
+        int c = 0;
+        for (int i = 0; i < data.length(); i++) {
+            char ch = data.charAt(i);
+            res += ch;
+            if (ch == '1') c++; else c = 0;
+            if (c == 5) { res += '0'; c = 0; }
+        }
+        System.out.println(flag + res + flag);
+    }
+}
+
+14. Character Stuffing
+----------------------
+import java.util.*;
+public class CharStuffing {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        String msg = sc.nextLine();
+        msg = msg.replace("ESC", "ESC ESC");
+        msg = msg.replace("FLAG", "ESC FLAG");
+        System.out.println("FLAG " + msg + " FLAG");
+    }
+}
+
+15. CRC Calculation
+-------------------
+import java.util.*;
+public class CRC {
+    static String xor(String a, String b) {
+        StringBuilder res = new StringBuilder();
+        for (int i = 1; i < b.length(); i++)
+            res.append(a.charAt(i) == b.charAt(i) ? '0' : '1');
+        return res.toString();
+    }
+    static String div(String data, String gen) {
+        int pick = gen.length();
+        String tmp = data.substring(0, pick);
+        while (pick < data.length()) {
+            if (tmp.charAt(0) == '1')
+                tmp = xor(gen, tmp) + data.charAt(pick);
+            else tmp = xor("0".repeat(pick), tmp) + data.charAt(pick);
+            pick++;
+        }
+        if (tmp.charAt(0) == '1') tmp = xor(gen, tmp);
+        else tmp = xor("0".repeat(pick), tmp);
+        return tmp;
+    }
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        String data = sc.nextLine(), gen = sc.nextLine();
+        int l = gen.length();
+        String code = data + "0".repeat(l - 1);
+        String rem = div(code, gen);
+        System.out.println("Transmitted: " + data + rem);
+    }
+}
+
+16. Hamming Code
+----------------
+import java.util.*;
+public class HammingCode {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        String data = sc.nextLine();
+        int m = data.length(), r = 0;
+        while (Math.pow(2, r) < m + r + 1) r++;
+        char[] arr = new char[m + r + 1];
+        int j = 0;
+        for (int i = 1; i < arr.length; i++)
+            if (Math.pow(2, j) == i) { arr[i] = 'P'; j++; }
+            else arr[i] = data.charAt(--m);
+        for (int i = 1; i < arr.length; i++)
+            System.out.print(arr[i]);
+    }
+}
+
+17. CSMA/CD Simulation
+----------------------
+import java.util.*;
+public class CSMACD {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        for (int i = 0; i < n; i++)
+            System.out.println("Transmission " + (i + 1) + ": success");
+    }
+}
+
+18. HTTP Client
+---------------
+import java.io.*;
+import java.net.*;
+public class HTTPClient {
+    public static void main(String[] args) throws Exception {
+        URL url = new URL("http://example.com");
+        BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()));
+        String line; while ((line = br.readLine()) != null) System.out.println(line);
+        br.close();
+    }
+}
+
+19. TCP Uppercase Server
+------------------------
+Server:
+import java.io.*;
+import java.net.*;
+public class UppercaseServer {
+    public static void main(String[] args) throws Exception {
+        ServerSocket ss = new ServerSocket(6000);
+        Socket s = ss.accept();
+        BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+        String msg;
+        while ((msg = br.readLine()) != null) out.println(msg.toUpperCase());
+        s.close(); ss.close();
+    }
+}
+Client:
+import java.io.*;
+import java.net.*;
+public class UppercaseClient {
+    public static void main(String[] args) throws Exception {
+        Socket s = new Socket("localhost", 6000);
+        PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+        BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        out.println("hello server");
+        System.out.println(in.readLine());
+        s.close();
+    }
+}
+
+20. FTP Simulation
+------------------
+Server:
+import java.io.*;
+import java.net.*;
+public class FTPServer {
+    public static void main(String[] args) throws Exception {
+        ServerSocket ss = new ServerSocket(8000);
+        Socket s = ss.accept();
+        BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+        String file = in.readLine();
+        BufferedReader fr = new BufferedReader(new FileReader(file));
+        String line; while ((line = fr.readLine()) != null) out.println(line);
+        fr.close(); s.close(); ss.close();
+    }
+}
+Client:
+import java.io.*;
+import java.net.*;
+public class FTPClient {
+    public static void main(String[] args) throws Exception {
+        Socket s = new Socket("localhost", 8000);
+        PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+        out.println("test.txt");
+        BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        String line; while ((line = in.readLine()) != null) System.out.println(line);
+        s.close();
+    }
+}
