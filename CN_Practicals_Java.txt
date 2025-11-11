@@ -1,0 +1,540 @@
+
+====================
+COMPUTER NETWORKS PRACTICALS - JAVA PROGRAMS
+====================
+
+EXPERIMENT 1: TCP CLIENT-SERVER COMMUNICATION
+---------------------------------------------
+[Server: TCPServer.java]
+import java.io.*;
+import java.net.*;
+public class TCPServer {
+    public static void main(String[] args) {
+        try {
+            ServerSocket serverSocket = new ServerSocket(5000);
+            System.out.println("Server waiting for client...");
+            Socket socket = serverSocket.accept();
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            String message = in.readLine();
+            System.out.println("Received: " + message);
+            in.close();
+            socket.close();
+            serverSocket.close();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
+}
+
+[Client: TCPClient.java]
+import java.io.*;
+import java.net.*;
+public class TCPClient {
+    public static void main(String[] args) {
+        try {
+            Socket socket = new Socket("localhost", 5000);
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            out.println("hello_client");
+            out.close();
+            socket.close();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
+}
+
+
+EXPERIMENT 2: UDP ECHO CLIENT-SERVER
+------------------------------------
+[Server: UDPServer.java]
+import java.io.*;
+import java.net.*;
+public class UDPServer {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket serverSocket = new DatagramSocket(9876);
+        byte[] receiveData = new byte[1024];
+        byte[] sendData;
+        System.out.println("Server waiting...");
+        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        serverSocket.receive(receivePacket);
+        String msg = new String(receivePacket.getData(), 0, receivePacket.getLength());
+        InetAddress ip = receivePacket.getAddress();
+        int port = receivePacket.getPort();
+        sendData = msg.getBytes();
+        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ip, port);
+        serverSocket.send(sendPacket);
+        System.out.println("Echoed: " + msg);
+        serverSocket.close();
+    }
+}
+
+[Client: UDPClient.java]
+import java.io.*;
+import java.net.*;
+public class UDPClient {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket clientSocket = new DatagramSocket();
+        InetAddress IP = InetAddress.getByName("localhost");
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        System.out.print("Enter message: ");
+        String msg = br.readLine();
+        byte[] sendData = msg.getBytes();
+        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IP, 9876);
+        clientSocket.send(sendPacket);
+        byte[] receiveData = new byte[1024];
+        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        clientSocket.receive(receivePacket);
+        String received = new String(receivePacket.getData(), 0, receivePacket.getLength());
+        System.out.println("Received from server: " + received);
+        clientSocket.close();
+    }
+}
+
+
+EXPERIMENT 3: TCP CHAT APPLICATION
+----------------------------------
+[Server: ChatServer.java]
+import java.io.*;
+import java.net.*;
+public class ChatServer {
+    public static void main(String[] args) {
+        try {
+            ServerSocket ss = new ServerSocket(5000);
+            System.out.println("Server waiting for client...");
+            Socket s = ss.accept();
+            System.out.println("Client connected.");
+            BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+            PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            String msgIn, msgOut;
+            while (true) {
+                msgIn = in.readLine();
+                if (msgIn.equalsIgnoreCase("bye")) break;
+                System.out.println("Client: " + msgIn);
+                System.out.print("Server: ");
+                msgOut = br.readLine();
+                out.println(msgOut);
+                if (msgOut.equalsIgnoreCase("bye")) break;
+            }
+            s.close();
+            ss.close();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
+}
+
+[Client: ChatClient.java]
+import java.io.*;
+import java.net.*;
+public class ChatClient {
+    public static void main(String[] args) {
+        try {
+            Socket s = new Socket("localhost", 5000);
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+            PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+            String msgIn, msgOut;
+            while (true) {
+                System.out.print("Client: ");
+                msgOut = br.readLine();
+                out.println(msgOut);
+                if (msgOut.equalsIgnoreCase("bye")) break;
+                msgIn = in.readLine();
+                System.out.println("Server: " + msgIn);
+                if (msgIn.equalsIgnoreCase("bye")) break;
+            }
+            s.close();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
+}
+
+
+EXPERIMENT 4: DNS USING UDP SOCKETS
+-----------------------------------
+[Server: UDPDNSServer.java]
+import java.io.*;
+import java.net.*;
+public class UDPDNSServer {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket serverSocket = new DatagramSocket(9876);
+        byte[] receiveData = new byte[1024];
+        byte[] sendData;
+        System.out.println("DNS Server running...");
+        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        serverSocket.receive(receivePacket);
+        String domain = new String(receivePacket.getData(), 0, receivePacket.getLength());
+        String ip;
+        try {
+            InetAddress inet = InetAddress.getByName(domain);
+            ip = inet.getHostAddress();
+        } catch (UnknownHostException e) {
+            ip = "Invalid domain";
+        }
+        InetAddress clientIP = receivePacket.getAddress();
+        int port = receivePacket.getPort();
+        sendData = ip.getBytes();
+        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, clientIP, port);
+        serverSocket.send(sendPacket);
+        System.out.println("Sent IP: " + ip);
+        serverSocket.close();
+    }
+}
+
+[Client: UDPDNSClient.java]
+import java.io.*;
+import java.net.*;
+public class UDPDNSClient {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket clientSocket = new DatagramSocket();
+        InetAddress IP = InetAddress.getByName("localhost");
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        System.out.print("Enter domain: ");
+        String domain = br.readLine();
+        byte[] sendData = domain.getBytes();
+        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IP, 9876);
+        clientSocket.send(sendPacket);
+        byte[] receiveData = new byte[1024];
+        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        clientSocket.receive(receivePacket);
+        String ip = new String(receivePacket.getData(), 0, receivePacket.getLength());
+        System.out.println("IP Address: " + ip);
+        clientSocket.close();
+    }
+}
+
+
+EXPERIMENT 6: ARP SIMULATION
+-----------------------------
+import java.util.*;
+public class ARPSimulation {
+    public static void main(String[] args) {
+        HashMap<String, String> table = new HashMap<>();
+        table.put("192.168.1.1", "00-A0-C9-14-C8-29");
+        table.put("192.168.1.2", "00-A0-C9-14-C8-30");
+        table.put("192.168.1.3", "00-A0-C9-14-C8-31");
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Enter IP: ");
+        String ip = sc.nextLine();
+        if (table.containsKey(ip))
+            System.out.println("MAC: " + table.get(ip));
+        else
+            System.out.println("IP not found.");
+    }
+}
+
+
+EXPERIMENT 7: RARP USING UDP SOCKETS
+------------------------------------
+[Server: RARPServer.java]
+import java.net.*;
+import java.util.*;
+public class RARPServer {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket serverSocket = new DatagramSocket(5000);
+        byte[] receiveData = new byte[1024];
+        byte[] sendData;
+        HashMap<String, String> table = new HashMap<>();
+        table.put("00-A0-C9-14-C8-29", "192.168.1.1");
+        table.put("00-A0-C9-14-C8-30", "192.168.1.2");
+        table.put("00-A0-C9-14-C8-31", "192.168.1.3");
+        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        serverSocket.receive(receivePacket);
+        String mac = new String(receivePacket.getData(), 0, receivePacket.getLength());
+        String ip = table.getOrDefault(mac, "IP not found");
+        InetAddress clientAddr = receivePacket.getAddress();
+        int port = receivePacket.getPort();
+        sendData = ip.getBytes();
+        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, clientAddr, port);
+        serverSocket.send(sendPacket);
+        serverSocket.close();
+    }
+}
+
+[Client: RARPClient.java]
+import java.net.*;
+import java.io.*;
+public class RARPClient {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket socket = new DatagramSocket();
+        InetAddress IP = InetAddress.getByName("localhost");
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        System.out.print("Enter MAC: ");
+        String mac = br.readLine();
+        byte[] sendData = mac.getBytes();
+        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IP, 5000);
+        socket.send(sendPacket);
+        byte[] receiveData = new byte[1024];
+        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        socket.receive(receivePacket);
+        String ip = new String(receivePacket.getData(), 0, receivePacket.getLength());
+        System.out.println("IP Address: " + ip);
+        socket.close();
+    }
+}
+
+
+EXPERIMENT 9: DISTANCE VECTOR ROUTING
+-------------------------------------
+import java.util.*;
+public class DistanceVectorRouting {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n;
+        System.out.print("Enter number of nodes: ");
+        n = sc.nextInt();
+        int cost[][] = new int[n][n];
+        System.out.println("Enter cost matrix (999 for infinity):");
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++)
+                cost[i][j] = sc.nextInt();
+        int distance[][] = new int[n][n];
+        int via[][] = new int[n][n];
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++) {
+                distance[i][j] = cost[i][j];
+                via[i][j] = j;
+            }
+        boolean update;
+        do {
+            update = false;
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++)
+                    for (int k = 0; k < n; k++)
+                        if (distance[i][j] > cost[i][k] + distance[k][j]) {
+                            distance[i][j] = cost[i][k] + distance[k][j];
+                            via[i][j] = k;
+                            update = true;
+                        }
+        } while (update);
+        System.out.println("Final Distance Table:");
+        for (int i = 0; i < n; i++) {
+            System.out.println("Router " + (i + 1));
+            for (int j = 0; j < n; j++)
+                System.out.println("To " + (j + 1) + " via " + (via[i][j] + 1) + " cost " + distance[i][j]);
+        }
+    }
+}
+
+
+EXPERIMENT 10: LINK STATE ROUTING (DIJKSTRA)
+--------------------------------------------
+import java.util.*;
+public class LinkStateRouting {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        final int INF = 999;
+        System.out.print("Enter number of nodes: ");
+        int n = sc.nextInt();
+        int cost[][] = new int[n][n];
+        System.out.println("Enter cost matrix:");
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++)
+                cost[i][j] = sc.nextInt();
+        System.out.print("Enter source node: ");
+        int src = sc.nextInt() - 1;
+        int dist[] = new int[n];
+        boolean visited[] = new boolean[n];
+        int parent[] = new int[n];
+        for (int i = 0; i < n; i++) {
+            dist[i] = cost[src][i];
+            visited[i] = false;
+            parent[i] = src;
+        }
+        visited[src] = true;
+        for (int c = 1; c < n - 1; c++) {
+            int min = INF, next = -1;
+            for (int i = 0; i < n; i++)
+                if (!visited[i] && dist[i] < min) {
+                    min = dist[i];
+                    next = i;
+                }
+            visited[next] = true;
+            for (int i = 0; i < n; i++)
+                if (!visited[i] && dist[next] + cost[next][i] < dist[i]) {
+                    dist[i] = dist[next] + cost[next][i];
+                    parent[i] = next;
+                }
+        }
+        for (int i = 0; i < n; i++)
+            if (i != src) {
+                System.out.print("Path to " + (i + 1) + ": " + (src + 1));
+                printPath(parent, i);
+                System.out.println(" cost=" + dist[i]);
+            }
+    }
+    static void printPath(int parent[], int j) {
+        if (parent[j] == j) return;
+        printPath(parent, parent[j]);
+        System.out.print(" -> " + (j + 1));
+    }
+}
+
+
+EXPERIMENT 11: CSMA/CD WITH CRC
+-------------------------------
+import java.util.*;
+public class CSMACD_CRC {
+    static String xor(String a, String b) {
+        String result = "";
+        for (int i = 1; i < b.length(); i++)
+            result += (a.charAt(i) == b.charAt(i)) ? "0" : "1";
+        return result;
+    }
+    static String divide(String data, String gen) {
+        int n = gen.length();
+        String temp = data.substring(0, n);
+        while (n < data.length()) {
+            if (temp.charAt(0) == '1')
+                temp = xor(gen, temp) + data.charAt(n);
+            else
+                temp = xor("0".repeat(gen.length()), temp) + data.charAt(n);
+            n++;
+        }
+        if (temp.charAt(0) == '1')
+            temp = xor(gen, temp);
+        else
+            temp = xor("0".repeat(gen.length()), temp);
+        return temp;
+    }
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Enter data bits: ");
+        String data = sc.next();
+        System.out.print("Enter generator: ");
+        String gen = sc.next();
+        String appended = data + "0".repeat(gen.length() - 1);
+        String rem = divide(appended, gen);
+        System.out.println("Remainder: " + rem);
+        String frame = data + rem;
+        System.out.println("Transmitted Frame: " + frame);
+        System.out.print("Enter received frame: ");
+        String recv = sc.next();
+        String check = divide(recv, gen);
+        System.out.println(check.contains("1") ? "Error detected!" : "No Error.");
+    }
+}
+
+
+EXPERIMENT 14: HTTP CLIENT TO DOWNLOAD WEBPAGE
+----------------------------------------------
+import java.io.*;
+import java.net.*;
+public class HttpClient {
+    public static void main(String[] args) throws Exception {
+        String host = "example.com";
+        Socket socket = new Socket(host, 80);
+        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+        out.println("GET / HTTP/1.1");
+        out.println("Host: " + host);
+        out.println("Connection: close");
+        out.println();
+        out.flush();
+        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        String line;
+        while ((line = in.readLine()) != null)
+            System.out.println(line);
+        in.close();
+        out.close();
+        socket.close();
+    }
+}
+
+
+EXPERIMENT 15: TCP ECHO CLIENT-SERVER
+-------------------------------------
+[Server: EchoServer.java]
+import java.io.*;
+import java.net.*;
+public class EchoServer {
+    public static void main(String[] args) throws Exception {
+        ServerSocket ss = new ServerSocket(5000);
+        Socket s = ss.accept();
+        BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+        String msg;
+        while ((msg = in.readLine()) != null) {
+            out.println("Echo: " + msg);
+        }
+        s.close();
+        ss.close();
+    }
+}
+
+[Client: EchoClient.java]
+import java.io.*;
+import java.net.*;
+public class EchoClient {
+    public static void main(String[] args) throws Exception {
+        Socket s = new Socket("localhost", 5000);
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+        BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        String msg;
+        while (true) {
+            System.out.print("Enter message: ");
+            msg = br.readLine();
+            out.println(msg);
+            if (msg.equalsIgnoreCase("exit")) break;
+            System.out.println("From Server: " + in.readLine());
+        }
+        s.close();
+    }
+}
+
+
+EXPERIMENT 16: UDP ECHO CLIENT-SERVER
+-------------------------------------
+[Server: UDPEchoServer.java]
+import java.net.*;
+public class UDPEchoServer {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket serverSocket = new DatagramSocket(9876);
+        byte[] receiveData = new byte[1024];
+        byte[] sendData;
+        System.out.println("UDP Echo Server started...");
+        while (true) {
+            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+            serverSocket.receive(receivePacket);
+            String message = new String(receivePacket.getData(), 0, receivePacket.getLength());
+            System.out.println("Received: " + message);
+            InetAddress clientAddress = receivePacket.getAddress();
+            int clientPort = receivePacket.getPort();
+            sendData = message.getBytes();
+            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, clientAddress, clientPort);
+            serverSocket.send(sendPacket);
+            if (message.equalsIgnoreCase("exit")) break;
+        }
+        serverSocket.close();
+    }
+}
+
+[Client: UDPEchoClient.java]
+import java.io.*;
+import java.net.*;
+public class UDPEchoClient {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket clientSocket = new DatagramSocket();
+        InetAddress serverAddress = InetAddress.getByName("localhost");
+        byte[] sendData;
+        byte[] receiveData = new byte[1024];
+        BufferedReader userInput = new BufferedReader(new InputStreamReader(System.in));
+        String message;
+        System.out.println("UDP Echo Client started...");
+        while (true) {
+            System.out.print("Enter message: ");
+            message = userInput.readLine();
+            sendData = message.getBytes();
+            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, serverAddress, 9876);
+            clientSocket.send(sendPacket);
+            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+            clientSocket.receive(receivePacket);
+            String echoedMsg = new String(receivePacket.getData(), 0, receivePacket.getLength());
+            System.out.println("From Server: " + echoedMsg);
+            if (message.equalsIgnoreCase("exit")) break;
+        }
+        clientSocket.close();
+    }
+}
